@@ -1,23 +1,20 @@
 #!/bin/bash
 ###############################################################################
-# update-all.sh – Systemweites Upgrade-Skript für Ubuntu/Debian (mit Snap/Flatpak)
+# update-all.sh – Systemweites Upgrade-Skript für Ubuntu/Debian (Snap/Flatpak)
 #
 # Beschreibung:
-#   Dieses Skript aktualisiert alle klassischen Systempakete (APT), Snap-Pakete
-#   und Flatpak-Anwendungen. Es entfernt nicht mehr benötigte Pakete,
-#   löst automatisch Paket-Abhängigkeitsprobleme, zeigt einen Fortschrittsbalken
-#   und Statusanzeige für den jeweiligen Schritt und das zu bearbeitende Paket.
+#   Aktualisiert alle Systempakete (APT), Snap- und Flatpak-Anwendungen, entfernt
+#   nicht mehr benötigte Pakete, löst Abhängigkeitsprobleme, zeigt Fortschrittsbalken
+#   und Status. Installations-/Uninstallfunktion, Akku-Prüfung (--no-battery/-nb) und
+#   LAN-only-Check (--lan-only/-l).
 #
-#   Es unterstützt zudem:
-#     - Installation als /usr/local/bin/update-all.sh (mit Option -i oder --install)
-#     - Deinstallation (mit Option -u oder --uninstall)
-#     - Hilfe/Parametersyntax und Beschreibung anzeigen (-h oder --help)
-#
-#   Aufruf (empfohlen immer mit sudo):
-#       sudo ./update-all.sh              # für einmalige Ausführung
-#       sudo ./update-all.sh -i           # installiert das Skript systemweit
-#       sudo update-all.sh                # nach Installation (immer mit sudo)
-#       ./update-all.sh -h                # zeigt Hilfe/Parameter und Beschreibung an
+#   Aufruf (am besten mit sudo):
+#       sudo ./update-all.sh
+#       sudo ./update-all.sh --install
+#       sudo update-all.sh  # nach Installation
+#       ./update-all.sh --help
+#       sudo update-all.sh --no-battery
+#       sudo update-all.sh --lan-only
 #
 #   Unterstützte Systeme:
 #     - Ubuntu (ab 20.04)
@@ -28,43 +25,86 @@
 # Version: siehe Variable VERSION
 ###############################################################################
 
-# ========================== METADATEN =========================
 VERSION="1.0.0"
 AUTOR="Uli König"
 SCRIPT_URL="https://github.com/ulikoenig/scripte/blob/main/update-all.sh"
 INSTALL_PATH="/usr/local/bin/update-all.sh"
 SCRIPT_NAME="update-all.sh"
 
-# ========================== HILFE =============================
 print_help() {
   echo "###############################################################################"
   echo "# update-all.sh v$VERSION – Systemweites Upgrade für Ubuntu/Debian-Systeme    #"
   echo "###############################################################################"
-  echo                                                  
-  echo "Dieses Skript aktualisiert systemweite Pakete (APT), Snap- und Flatpak-Apps,"
-  echo "löst Paket-Abhängigkeitsprobleme und entfernt automatisch nicht mehr benötigte"
-  echo "Pakete. Es zeigt dabei einen Fortschrittsbalken mit Statusanzeige."
-  echo                                                  
+  echo
+  echo "Dieses Skript aktualisiert Systempakete (APT), Snap-/Flatpak-Apps, löst Abhängigkeitsprobleme"
+  echo "und entfernt nicht mehr benötigte Pakete. Zeigt Fortschrittsbalken und Status."
+  echo
   echo "Optionen:"
-  echo "  -i, --install     Installiert das Skript fest als $INSTALL_PATH"
-  echo "                   (Root-Rechte erforderlich, ggf. vorhandene Version nach Nachfrage überschreiben)"
-  echo "  -u, --uninstall   Entfernt das Skript wieder (Root-Rechte erforderlich, Nachfrage vor Löschung)"
-  echo "  -h, --help        Zeigt diese Hilfe an"
+  echo "  -i, --install       Installiert als $INSTALL_PATH (Root-Rechte nötig, ggf. Nachfrage)"
+  echo "  -u, --uninstall     Deinstalliert (Root-Rechte, Nachfrage vor Löschung)"
+  echo "  -h, --help          Zeigt diese Hilfe"
+  echo "  -nb, --no-battery   Beendet, falls im Akkubetrieb"
+  echo "  -l,  --lan-only     Beendet, falls NICHT via LAN online (z.B. via WLAN/Mobilfunk)"
   echo
   echo "Nutzung:"
   echo "  sudo $SCRIPT_NAME"
-  echo "  Empfohlen für: Ubuntu/Debian, mit Snap/Flatpak-Support"
-  echo                                                  
+  echo "  Empfohlen für: Ubuntu/Debian, mit Snap/Flatpak"
+  echo
   echo "Autor: $AUTOR"
   echo "Quelle: $SCRIPT_URL"
   echo "###############################################################################"
   exit 0
 }
 
-# ========================== INSTALLER ==========================
+check_battery() {
+  local battery_state=""
+  if command -v upower >/dev/null; then
+    battery_state=$(upower -i $(upower -e | grep battery) 2>/dev/null | awk -F': ' '/state/{print $2}' | head -n1)
+    if [[ "$battery_state" == "discharging" ]]; then
+      echo "WARNUNG: Der Computer läuft aktuell im Akkubetrieb!"
+      echo "Bitte schließen Sie das Gerät ans Netzteil und starten Sie das Update erneut."
+      exit 1
+    fi
+  elif command -v acpi >/dev/null; then
+    battery_state=$(acpi -b | awk '{print $3}' | head -n1)
+    if [[ "$battery_state" == "Discharging" ]]; then
+      echo "WARNUNG: Der Computer läuft aktuell im Akkubetrieb!"
+      echo "Bitte schließen Sie das Gerät ans Netzteil und starten Sie das Update erneut."
+      exit 1
+    fi
+  elif [ -r /sys/class/power_supply/BAT0/status ]; then
+    battery_state=$(cat /sys/class/power_supply/BAT0/status)
+    if [[ "$battery_state" == "Discharging" ]]; then
+      echo "WARNUNG: Der Computer läuft aktuell im Akkubetrieb!"
+      echo "Bitte schließen Sie das Gerät ans Netzteil und starten Sie das Update erneut."
+      exit 1
+    fi
+  fi
+}
+
+check_lan() {
+  # Prüfe aktives Interface für die Standardroute
+  local lanok=0
+  local lanname=""
+  local defroute_iface
+  defroute_iface=$(ip route | awk '/default/ {print $5}' | head -n1)
+  if [[ "$defroute_iface" =~ ^(eth|enp|eno|ens)[0-9a-z]*$ ]]; then
+    lanok=1;
+    lanname="$defroute_iface"
+  fi
+  # WLAN: "wl", "wlan", "wifi"
+  # Mobil: "wwan", "usb", "tty", "rmnet"
+  if [[ $lanok -eq 0 ]]; then
+    echo "WARNUNG: Die Internetverbindung erfolgt NICHT über LAN/Ethernet."
+    echo "Aktuell verwendet: $defroute_iface"
+    echo "Das Skript beendet sich aus Sicherheitsgründen. Bitte kabelgebundene Verbindung verwenden!"
+    exit 1
+  fi
+}
+
 install_script() {
   if [ "$(id -u)" -ne 0 ]; then
-    echo "Bitte führen Sie die Installation mit Root-Rechten (sudo) aus!"
+    echo "Bitte mit Root-Rechten (sudo) installieren!"
     exit 1
   fi
   if [ -f "$INSTALL_PATH" ]; then
@@ -81,10 +121,9 @@ install_script() {
   exit 0
 }
 
-# ========================= UNINSTALLER =========================
 uninstall_script() {
   if [ "$(id -u)" -ne 0 ]; then
-    echo "Bitte führen Sie die Deinstallation mit Root-Rechten (sudo) aus!"
+    echo "Bitte mit Root-Rechten (sudo) deinstallieren!"
     exit 1
   fi
   if [ ! -f "$INSTALL_PATH" ]; then
@@ -101,7 +140,6 @@ uninstall_script() {
   exit 0
 }
 
-# ========================== PARAMETER - MAIN ===================
 case "$1" in
   -i|--install)
     install_script ;;
@@ -109,9 +147,16 @@ case "$1" in
     uninstall_script ;;
   -h|--help)
     print_help ;;
+  -nb|--no-battery)
+    check_battery
+    echo "Gerät ist NICHT im Akkubetrieb, Updates werden ausgeführt ..."
+    shift ;;
+  -l|--lan-only)
+    check_lan
+    echo "LAN-Kabelverbindung erkannt, Updates werden ausgeführt ..."
+    shift ;;
 esac
 
-# ========================== UPDATE LOGIK =======================
 steps=7
 step_names=(
   "APT-Update"
