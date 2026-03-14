@@ -35,9 +35,8 @@ Manuelle Installation der Abhängigkeiten:
 Bash
 
 ```
-`sudo apt update`
-
-`sudo apt install ffmpeg eyed3 jq awk`
+sudo apt update
+sudo apt install ffmpeg eyed3 jq awk
 ```
 
 ## 📦 Installation & Nutzung
@@ -49,7 +48,7 @@ Bash
 Bash
 
 ```
-`chmod +x merge\_mp3.sh`
+chmod +x merge\_mp3.sh
 ```
 
 3. Führe das Skript aus:
@@ -57,7 +56,7 @@ Bash
 Bash
 
 ```
-`./merge\_mp3.sh`
+./merge\_mp3.sh
 ```
 
 ## 📂 Erwartete Ordnerstruktur
@@ -69,31 +68,19 @@ Das Skript erwartet, dass die MP3-Dateien in Ordnern liegen. Es ignoriert Dateie
 Plaintext
 
 ```
-`MeineMusik/`
-
-`├── Skript/merge\_mp3.sh`
-
-`├── Album A/`
-
-`│   ├── 01-Intro.mp3`
-
-`│   ├── 02-Song.mp3`
-
-`│   └── cover.jpg`
-
-`└── Hörbuch B/`
-
-`    ├── CD1/`
-
-`    │   ├── 01-Kapitel1.mp3`
-
-`    │   └── 02-Kapitel2.mp3`
-
-`    └── CD2/`
-
-`        ├── 01-Kapitel3.mp3`
-
-`        └── 02-Kapitel4.mp3`
+MeineMusik/
+├── Skript/merge\_mp3.sh
+├── Album A/
+│   ├── 01-Intro.mp3
+│   ├── 02-Song.mp3
+│   └── cover.jpg
+└── Hörbuch B/
+    ├── CD1/
+    │   ├── 01-Kapitel1.mp3
+    │   └── 02-Kapitel2.mp3
+    └── CD2/
+        ├── 01-Kapitel3.mp3
+        └── 02-Kapitel4.mp3
 ```
 
 **Nachher:**
@@ -101,37 +88,22 @@ Plaintext
 Plaintext
 
 ```
-`MeineMusik/`
-
-`├── Skript/merge\_mp3.sh`
-
-`├── Album A/`
-
-`│   ├── 01-Intro.mp3`
-
-`│   ├── 02-Song.mp3`
-
-`│   └── cover.jpg`
-
-`├── Album A.mp3         \<-- NEU (inkl. Cover & Kapitel)`
-
-`└── Hörbuch B/`
-
-`    ├── CD1/`
-
-`    │   ├── 01-Kapitel1.mp3`
-
-`    │   └── 02-Kapitel2.mp3`
-
-`    ├── CD1.mp3         \<-- NEU`
-
-`    ├── CD2/`
-
-`    │   ├── 01-Kapitel3.mp3`
-
-`    │   └── 02-Kapitel4.mp3`
-
-`    └── CD2.mp3         \<-- NEU`
+MeineMusik/
+├── Skript/merge\_mp3.sh
+├── Album A/
+│   ├── 01-Intro.mp3
+│   ├── 02-Song.mp3
+│   └── cover.jpg
+├── Album A.mp3         \<-- NEU (inkl. Cover & Kapitel)
+└── Hörbuch B/
+    ├── CD1/
+    │   ├── 01-Kapitel1.mp3
+    │   └── 02-Kapitel2.mp3
+    ├── CD1.mp3         \<-- NEU
+    ├── CD2/
+    │   ├── 01-Kapitel3.mp3
+    │   └── 02-Kapitel4.mp3
+    └── CD2.mp3         \<-- NEU
 ```
 
 *(Hinweis: Die originalen Dateien werden zur Sicherheit **nicht** gelöscht. Du kannst sie nach erfolgreicher Prüfung der generierten Dateien manuell entfernen).*
