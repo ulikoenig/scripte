@@ -65,8 +65,6 @@ Das Skript erwartet, dass die MP3-Dateien in Ordnern liegen. Es ignoriert Dateie
 
 **Vorher:**
 
-Plaintext
-
 ```
 MeineMusik/
 ├── Skript/merge\_mp3.sh
@@ -84,8 +82,6 @@ MeineMusik/
 ```
 
 **Nachher:**
-
-Plaintext
 
 ```
 MeineMusik/
